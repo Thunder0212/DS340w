@@ -1,10 +1,10 @@
 import os, shutil
 from pathlib import Path
 
-# 1) 数据根目录：默认读环境变量 DATA_DIR，否则用 ./data
+
 DATA_DIR =r"C:\Users\zhoul\Desktop\340w\data"
 
-# 2) 需要标准化到的“短名字”四类
+
 CANONICAL = {
     "adenocarcinoma_left.lower.lobe_T2_N0_M0_Ib": "adenocarcinoma",
     "large.cell.carcinoma_left.hilum_T2_N2_M0_IIIa": "large.cell.carcinoma",
@@ -20,18 +20,18 @@ SPLITS = ["train", "val", "test"]
 def normalize_split(split):
     src_split = Path(DATA_DIR) / split
     if not src_split.is_dir():
-        print(f"⚠️  Missing split: {src_split}")
+        print(f"Missing split: {src_split}")
         return
 
-    # 输出到一个新的标准化目录（更安全）
+   
     dst_split = Path(DATA_DIR) / f"{split}_std"
     dst_split.mkdir(parents=True, exist_ok=True)
 
-    # 为四个目标类创建目录
+    
     for cname in ["adenocarcinoma", "large.cell.carcinoma", "squamous.cell.carcinoma", "normal"]:
         (dst_split / cname).mkdir(parents=True, exist_ok=True)
 
-    # 遍历源 split 下的每个“类文件夹”
+    
     for cls in sorted(os.listdir(src_split)):
         cls_dir = src_split / cls
         if not cls_dir.is_dir():

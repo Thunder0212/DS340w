@@ -1,15 +1,15 @@
-# src/pipeline.py
+
 import os, numpy as np, torch, torch.nn as nn
 from tqdm import tqdm
 from config import Cfg
 from utils import set_seed, get_loaders, ensure_dir, print_metrics
 from models import make_model
 
-# ── 设备与加速设置（只打印一次） ────────────────────────────────────────────────
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-torch.backends.cudnn.benchmark = True  # 固定输入尺寸/批次大小时可显著提速
 
-# AMP (PyTorch 2.8+ 推荐写法)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+torch.backends.cudnn.benchmark = True  
+
+# AMP 
 if DEVICE == "cuda":
     autocast = torch.amp.autocast("cuda")
     def make_scaler(): return torch.amp.GradScaler("cuda")
@@ -17,7 +17,7 @@ else:
     autocast = torch.amp.autocast("cpu")
     def make_scaler(): return torch.amp.GradScaler("cpu")
 
-# ── 评估：带进度条，看得见在跑 ────────────────────────────────────────────────
+
 def _eval_loader_probs(model, loader):
     model.eval()
     probs, labels = [], []
@@ -28,7 +28,7 @@ def _eval_loader_probs(model, loader):
             probs.append(p); labels.append(int(ys.item()))
     return np.stack(probs), np.array(labels)
 
-# ── 训练 Original/True 模型：仅最后3轮评估，末尾一次性写盘 ─────────────────────
+
 def train_and_dump_probs(backbone: str, tag: str):
     set_seed(Cfg.seed)
     ensure_dir(Cfg.out_dir)
@@ -57,7 +57,7 @@ def train_and_dump_probs(backbone: str, tag: str):
             scaler.step(opt)
             scaler.update()
 
-        # ★ 仅在最后3轮评估（与论文“取最后三轮均值”一致）
+       
         if epoch >= Cfg.epochs - 3:
             tr_probs, tr_labels = _eval_loader_probs(model, train_eval_loader)
             te_probs, te_labels = _eval_loader_probs(model, test_loader)
@@ -65,14 +65,14 @@ def train_and_dump_probs(backbone: str, tag: str):
             last3_train_probs.append(tr_probs)
             last3_test_probs.append(te_probs)
 
-    # 兜底：如 epochs < 3，至少评一次
+   
     if not last3_train_probs or not last3_test_probs:
         tr_probs, tr_labels = _eval_loader_probs(model, train_eval_loader)
         te_probs, te_labels = _eval_loader_probs(model, test_loader)
         train_labels_ref, test_labels_ref = tr_labels, te_labels
         last3_train_probs, last3_test_probs = [tr_probs], [te_probs]
 
-    # 末尾一次性聚合并写盘
+   
     train_probs_mean = np.mean(np.stack(last3_train_probs), axis=0) if Cfg.use_avg_last3 else last3_train_probs[-1]
     test_probs_mean  = np.mean(np.stack(last3_test_probs),  axis=0) if Cfg.use_avg_last3 else last3_test_probs[-1]
 
@@ -83,7 +83,7 @@ def train_and_dump_probs(backbone: str, tag: str):
 
     print_metrics(f"{tag}-{backbone}-TEST", test_labels_ref, test_probs_mean)
 
-# ── True-3 掩码（多骨干 >=2 票一致正确） ───────────────────────────────────────
+# True-3
 def build_true3_mask_from_train():
     labels = None
     votes_correct = []
@@ -99,7 +99,7 @@ def build_true3_mask_from_train():
     print(f"[True-3] selected {mask.sum()} / {len(mask)} training samples.")
     return mask
 
-# ── 训练 True 网络：仅最后3轮评估 ─────────────────────────────────────────────
+#训练 True
 def train_true_network(backbone: str, true3_mask):
     set_seed(Cfg.seed); ensure_dir(Cfg.out_dir)
     from torchvision import datasets
@@ -141,7 +141,7 @@ def train_true_network(backbone: str, true3_mask):
             scaler.step(opt)
             scaler.update()
 
-        if epoch >= Cfg.epochs - 3:  # 仅最后3轮评估
+        if epoch >= Cfg.epochs - 3:  
             te_probs, te_labels = _eval_loader_probs(model, test_loader)
             test_labels_ref = te_labels
             last3_test_probs.append(te_probs)
@@ -156,7 +156,7 @@ def train_true_network(backbone: str, true3_mask):
     np.save(os.path.join(Cfg.out_dir, f"true_{backbone}_test_labels.npy"), test_labels_ref)
     print_metrics(f"TRUE-{backbone}-TEST", test_labels_ref, test_probs_mean)
 
-# ── 两步法推理（多分类：Top1-Top2 概率差阈值） ─────────────────────────────────
+# 两步法推理（多分类：Top1-Top2 概率差阈值）
 def two_step_infer(model_original: str, model_true: str, mode="model1"):
     pO = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_probs.npy"))
     y  = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_labels.npy"))
@@ -174,18 +174,63 @@ def two_step_infer(model_original: str, model_true: str, mode="model1"):
 
     print_metrics(f"TwoStep-{mode.upper()}", y, out)
 
-# ── 主流程 ────────────────────────────────────────────────────────────────────
+def two_step_infer_entropy(model_original: str, model_true: str,
+                           quantile: float = None,
+                           mode: str = "replace"):
+    """
+    Week 11 Novelty:
+    Use predictive entropy instead of (Top1-Top2) margin
+    to decide which samples go to the True network.
+    """
+    if quantile is None:
+        quantile = getattr(Cfg, "entropy_quantile", 0.7)
+
+    # 1) Load probs and labels
+    pO = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_probs.npy"))
+    y  = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_labels.npy"))
+    pT = np.load(os.path.join(Cfg.out_dir, f"true_{model_true}_test_probs.npy"))
+
+    # 2) Compute predictive entropy for each test sample
+    eps = 1e-8
+    entropy = -np.sum(pO * np.log(pO + eps), axis=1)   # shape [N]
+
+    # Higher entropy = more uncertain
+    thr = np.quantile(entropy, quantile)
+    use_true = entropy > thr    # send only the most uncertain samples to True network
+
+    # 3) Combine outputs
+    out = pO.copy()
+    if mode.lower() == "replace":
+        out[use_true] = pT[use_true]
+        tag = f"TwoStep-ENT-replace-q{quantile}"
+    else:
+        out[use_true] = (pO[use_true] + pT[use_true]) / 2.0
+        tag = f"TwoStep-ENT-avg-q{quantile}"
+
+    # 4) Evaluate
+    print_metrics(tag, y, out)
+
+
 if __name__ == "__main__":
-    # 1) 训练多个 Original 模型（用于 True-3 投票）
+    # 1) Train multiple Original models (for True-3 voting)
     for b in Cfg.backbone_list[:3]:
         train_and_dump_probs(b, tag="original")
 
-    # 2) 基于训练集构建 True-3 掩码
+    # 2) Build True-3 mask from training set
     mask_true3 = build_true3_mask_from_train()
 
-    # 3) 训练 True 网络（在 True-3 子集上）
+    # 3) Train True network on True-3 subset
     train_true_network(Cfg.true_backbone, mask_true3)
 
-    # 4) 两步法推理（Top1-Top2 差值阈值）
+    # 4) Two-step inference: baseline margin-based methods
     two_step_infer(Cfg.original_backbone, Cfg.true_backbone, mode="model1")
     two_step_infer(Cfg.original_backbone, Cfg.true_backbone, mode="model2")
+
+    # 5) Week 11 Novelty: entropy-based two-step inference
+    if getattr(Cfg, "use_entropy_gate", False):
+        two_step_infer_entropy(Cfg.original_backbone, Cfg.true_backbone,
+                               quantile=Cfg.entropy_quantile,
+                               mode="replace")
+        two_step_infer_entropy(Cfg.original_backbone, Cfg.true_backbone,
+                               quantile=Cfg.entropy_quantile,
+                               mode="avg")

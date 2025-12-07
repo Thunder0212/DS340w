@@ -37,30 +37,32 @@ This produces a robust, uncertainty-aware ultrasound classification system.
 
 This project supports **Python 3.11–3.12**.
 
-###  Clone the repository**
+
+
+### Clone the repository
 
 ```bash
 git clone https://github.com/<your-username>/DS340w.git
+```
 
-## Create and activate a virtual environment
+### Create and activate a virtual environment
+```Windows PowerShell
+bash
 
-Windows PowerShell
 py -3.12 -m venv .venv
 .\.venv\Scripts\activate
+```
+### Install dependencies
 
-###Install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 
-If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new):
-
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-
+If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new), install CPU version: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 ### Running the Project
 
 Run the entire pipeline with:
+
 
 python src/pipeline.py
 

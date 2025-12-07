@@ -59,12 +59,13 @@ bash
 pip install --upgrade pip
 pip install -r requirements.txt
 
-If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new), install CPU version: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new), 
+install CPU version: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
 ### Running the Project
 ```
 bash
-Run the entire pipeline with:
+
 python src/pipeline.py
 ```
 

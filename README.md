@@ -41,7 +41,8 @@ This project supports **Python 3.11–3.12**.
 
 ### Clone the repository
 
-```bash
+```
+bash
 git clone https://github.com/<your-username>/DS340w.git
 ```
 
@@ -53,18 +54,18 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\activate
 ```
 ### Install dependencies
-
+```
+bash
 pip install --upgrade pip
 pip install -r requirements.txt
 
 If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new), install CPU version: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
+```
 ### Running the Project
-
+```
+bash
 Run the entire pipeline with:
-
-
 python src/pipeline.py
-
+```
 
 

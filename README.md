@@ -54,3 +54,9 @@ This produces a robust, uncertainty-aware ultrasound classification system.
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+```2.2 Install Dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+```

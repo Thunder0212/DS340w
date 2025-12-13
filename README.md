@@ -1,7 +1,7 @@
 # Influence-Based Pruning and True Network with Entropy-Guided Selective Inference
 
-This repository implements a **data-efficient two-stage inference framework** for ultrasound image classification.
-The proposed system integrates **influence-based dataset pruning (GradNorm proxy)** with a **True Network architecture**,
+This repository implements a **data-efficient two-stage inference framework** for medical ultrasound and pathology image classification.
+The system integrates **influence-based dataset pruning (GradNorm proxy)** with a **True Network architecture**,
 and introduces an **entropy-based gating mechanism** that selectively refines only uncertain predictions.
 
 ---
@@ -19,6 +19,7 @@ DS340w/
 │  └─ config.py             # All experiment configurations
 ├─ data/
 │  ├─ train/
+│  ├─ val/
 │  └─ test/
 ├─ results/
 ├─ requirements.txt
@@ -43,29 +44,33 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-If `timm` is missing:
-
-```bash
-pip install timm
-```
-
 ---
 
 ## 3. Dataset Format
 
-The dataset must follow the `ImageFolder` format used by `torchvision`:
+The dataset follows the `ImageFolder` format used by `torchvision`, with **train / val / test** splits and **four classes**:
 
 ```text
 data/
 ├─ train/
-│  ├─ class0/
-│  └─ class1/
+│  ├─ adenocarcinoma/
+│  ├─ large.cell.carcinoma/
+│  ├─ normal/
+│  └─ squamous.cell.carcinoma/
+├─ val/
+│  ├─ adenocarcinoma/
+│  ├─ large.cell.carcinoma/
+│  ├─ normal/
+│  └─ squamous.cell.carcinoma/
 └─ test/
-   ├─ class0/
-   └─ class1/
+   ├─ adenocarcinoma/
+   ├─ large.cell.carcinoma/
+   ├─ normal/
+   └─ squamous.cell.carcinoma/
 ```
 
-Folder names correspond to class labels.
+Folder names are treated as class labels.  
+The validation set is optional and can be ignored if not used by the pipeline.
 
 ---
 
@@ -135,7 +140,7 @@ threshold_T = 0.15
 
 - GradNorm-based pruning is slower than standard training due to per-sample backpropagation.
 - AMP-related warnings can be safely ignored.
-- If you change backbone names, delete `results/` before re-running.
+- If you change backbone names or dataset structure, delete `results/` before re-running.
 
 ---
 

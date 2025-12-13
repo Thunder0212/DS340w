@@ -144,8 +144,4 @@ threshold_T = 0.15
 
 ---
 
-## 9. Citation
 
-If you use this code, please cite:
-
-> Luping Zhou, *Influence-Based Pruning and True Network with Entropy-Guided Selective Inference*, 2025.

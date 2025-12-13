@@ -8,19 +8,18 @@ from pathlib import Path
 
 RATIOS = [0.0, 0.1, 0.2, 0.3, 0.4]
 
-# Try to extract AUC from printed line like:
-# [ENT_Avg_q0.7] ... AUC(ovr)=0.9803
+
 AUC_RE = re.compile(r"\[([^\]]+)\].*?AUC\(ovr\)=([0-9.]+)")
 
 def run_one(ratio: float) -> dict:
     out_dir = f"results_prune_{ratio}"
     env = os.environ.copy()
     env["OUT_DIR"] = out_dir
-    env["PRUNE_RATIO"] = str(ratio)  # 需要你 config.py 用 env 读 PRUNE_RATIO
+    env["PRUNE_RATIO"] = str(ratio)  
 
     t0 = time.time()
 
-    # 实时打印 pipeline 输出（不再“卡住看不到”）
+    
     proc = subprocess.Popen(
         ["python", "src/pipeline.py"],
         env=env,
@@ -32,8 +31,8 @@ def run_one(ratio: float) -> dict:
 
     stdout_lines = []
     for line in proc.stdout:
-        print(line, end="")          # ✅ 实时输出到终端
-        stdout_lines.append(line)    # ✅ 仍然保存下来用于解析 AUC
+        print(line, end="")          
+        stdout_lines.append(line)    
 
     proc.wait()
     dt = time.time() - t0
@@ -73,12 +72,7 @@ def run_one(ratio: float) -> dict:
 
 
 def main():
-    # ---- OPTIONAL but recommended ----
-    # Make config read PRUNE_RATIO env var (one-line tweak):
-    # Cfg.prune_ratio = float(os.getenv("PRUNE_RATIO", "0.3"))
-    #
-    # If you do that, we can set env["PRUNE_RATIO"] each run automatically.
-    # ----------------------------------
+    
 
     results_dir = Path("results_sweep")
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -87,10 +81,7 @@ def main():
     rows = []
     for r in RATIOS:
         print(f"\n=== RUN prune_ratio={r} ===")
-        # If you applied the PRUNE_RATIO env tweak in config.py, uncomment:
-        # os.environ["PRUNE_RATIO"] = str(r)
-
-        # Better: pass it via env copy
+        
         row = run_one(r)
         rows.append(row)
 

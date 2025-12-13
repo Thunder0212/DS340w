@@ -1,4 +1,4 @@
-# src/utils.py
+
 import os
 import random
 from pathlib import Path
@@ -11,9 +11,7 @@ from torchvision import datasets, transforms
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, confusion_matrix, recall_score
 
 
-# -------------------------
-# Reproducibility
-# -------------------------
+
 def set_seed(seed: int = 42) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -21,16 +19,12 @@ def set_seed(seed: int = 42) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
-# -------------------------
-# Filesystem helper
-# -------------------------
+
 def ensure_dir(path: str) -> None:
     Path(path).mkdir(parents=True, exist_ok=True)
 
 
-# -------------------------
-# Transforms
-# -------------------------
+
 def make_transforms(img_size: int):
     train_tf = transforms.Compose([
         transforms.Resize((img_size, img_size)),
@@ -47,9 +41,7 @@ def make_transforms(img_size: int):
     return train_tf, eval_tf
 
 
-# -------------------------
-# Data loaders
-# -------------------------
+
 def _make_weighted_sampler(targets: List[int]) -> WeightedRandomSampler:
     """
     Build a WeightedRandomSampler to reduce class imbalance.
@@ -122,7 +114,7 @@ def get_loaders(
         pin_memory=torch.cuda.is_available(),
     )
 
-    # IMPORTANT: train_eval_loader should be deterministic and per-sample for pruning/prob dumps
+    
     train_eval_loader = DataLoader(
         train_eval_ds,
         batch_size=1,
@@ -150,9 +142,9 @@ def get_loaders(
     return train_loader, train_eval_loader, val_loader, test_loader, classes
 
 
-# -------------------------
+
 # Metrics
-# -------------------------
+
 def _specificity_macro(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> float:
     """
     Macro-average specificity for multi-class:
@@ -186,7 +178,7 @@ def metrics_multiclass(y_true: np.ndarray, y_prob: np.ndarray):
     sen = recall_score(y_true, y_pred, average="macro")
     spe = _specificity_macro(y_true, y_pred, n_classes)
 
-    # AUC (OvR macro). For binary, roc_auc_score expects prob of positive or 2-col is fine.
+    # AUC
     try:
         if n_classes == 2:
             aucv = roc_auc_score(y_true, y_prob[:, 1])

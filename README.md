@@ -1,8 +1,15 @@
-# Influence-Based Pruning and True Network for Efficient Ultrasound Classification
+# Influence-Based Pruning and True Network with Entropy-Guided Selective Inference
 
-This repository contains the implementation for my DS 340W project, which combines **influence-based data pruning** with an enhanced **True Network** architecture to create a data-efficient and energy-efficient ultrasound classification pipeline.
+This repository implements a **data-efficient two-stage inference framework** for ultrasound image classification.  
+The proposed system integrates **influence-based dataset pruning (GradNorm proxy)** with a **True Network architecture**, and further introduces an **entropy-based gating mechanism** that selectively refines only uncertain predictions.
 
-The system is tested on breast ultrasound datasets and designed to maintain diagnostic performance while reducing redundant training data and computational cost.
+The goal is to improve robustness and efficiency by:
+- Removing low-impact training samples before training
+- Training a secondary *True Network* on high-confidence consensus data
+- Invoking the True Network **only when prediction uncertainty is high**
+
+---
+
 
 ---
 
@@ -33,40 +40,17 @@ This produces a robust, uncertainty-aware ultrasound classification system.
 
 
 
-## Installation & Environment Setup
 
-This project supports **Python 3.11–3.12**.
+> **Important:**  
+> The dataset must follow the **ImageFolder format** used by torchvision.
 
+---
 
+## 2. Environment Setup
 
-### Clone the repository
+### 2.1 Create a Virtual Environment (Recommended)
 
-```
-bash
-git clone https://github.com/<your-username>/DS340w.git
-```
-
-### Create and activate a virtual environment
-```Windows PowerShell
-bash
-
+**Windows (PowerShell):**
+```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\activate
-```
-### Install dependencies
-```
-bash
-pip install --upgrade pip
-pip install -r requirements.txt
-
-If GPU installation fails (e.g., RTX 5060 Ti sm_120 is too new), 
-install CPU version: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-```
-### Running the Project
-```
-bash
-
-python src/pipeline.py
-```
-
-
+.\.venv\Scripts\Activate.ps1

@@ -22,9 +22,7 @@ else:
     def make_scaler(): return torch.amp.GradScaler("cpu")
 
 
-# ----------------------------
-# Helpers
-# ----------------------------
+
 def _save_preds(method_name: str, y_true: np.ndarray, y_prob: np.ndarray):
     """Save predictions for plotting (ROC/ConfMat/etc)."""
     pred_dir = os.path.join(Cfg.out_dir, "preds")
@@ -48,9 +46,7 @@ def _eval_loader_probs(model, loader):
     return np.stack(probs), np.array(labels)
 
 
-# ----------------------------
-# Pruning - compute once
-# ----------------------------
+
 def compute_pruning_indices_once(classes):
     """
     Returns:
@@ -58,7 +54,7 @@ def compute_pruning_indices_once(classes):
     """
     ensure_dir(Cfg.out_dir)
 
-    # Build FULL loaders (no pruning) for scoring
+   
     train_loader, train_eval_loader, val_loader, test_loader, _classes = get_loaders(
         Cfg.data_dir, Cfg.img_size, Cfg.batch_size, Cfg.num_workers,
         train_indices=None
@@ -73,13 +69,13 @@ def compute_pruning_indices_once(classes):
 
     print(f"[prune] ENABLED: method=gradnorm, prune_ratio={Cfg.prune_ratio}")
 
-    # scoring model (use first backbone)
+    # scoring model
     score_backbone = Cfg.backbone_list[0]
     score_model = make_model(score_backbone, num_classes=len(classes)).to(DEVICE)
 
     scores = compute_gradnorm_scores(
         model=score_model,
-        loader=train_eval_loader,              # deterministic order (shuffle=False)
+        loader=train_eval_loader,              
         device=torch.device(DEVICE),
         head_only=getattr(Cfg, "prune_head_only", True),
         max_samples=getattr(Cfg, "prune_max_samples", 0),
@@ -94,9 +90,7 @@ def compute_pruning_indices_once(classes):
     return keep
 
 
-# ----------------------------
-# Train & dump probs
-# ----------------------------
+
 def train_and_dump_probs(backbone: str, tag: str, train_indices_full=None):
     """
     train_indices_full:
@@ -159,9 +153,7 @@ def train_and_dump_probs(backbone: str, tag: str, train_indices_full=None):
     _save_preds(f"{tag}_{backbone}", test_labels_ref, test_probs_mean)
 
 
-# ----------------------------
-# True-3 mask on PRUNED subset order (WITH FALLBACK)
-# ----------------------------
+
 def build_true3_mask_from_train():
     labels = None
     votes_correct = []
@@ -176,24 +168,22 @@ def build_true3_mask_from_train():
 
     votes_sum = np.stack(votes_correct, axis=0).sum(axis=0)
 
-    # True-3: at least 2 correct votes
+    # True-3
     mask = votes_sum >= 2
 
-    # ---- fallback to avoid empty dataset ----
+    
     if mask.sum() == 0:
         print("[True-3] WARNING: 0 samples selected. Fallback to >=1 correct vote.")
         mask = votes_sum >= 1
         print(f"[True-3 fallback] selected {mask.sum()} / {len(mask)} samples.")
-    # ----------------------------------------
+    
 
     np.save(os.path.join(Cfg.out_dir, "true3_mask_train.npy"), mask)
     print(f"[True-3] final selected {mask.sum()} / {len(mask)} samples (ON PRUNED SUBSET ORDER).")
     return mask
 
 
-# ----------------------------
-# Train True network using FULL indices mapping
-# ----------------------------
+
 def train_true_network(backbone: str, true3_mask_subset: np.ndarray, keep_full_indices: np.ndarray):
     """
     true3_mask_subset: mask over PRUNED subset order (length = kept samples)
@@ -277,9 +267,7 @@ def train_true_network(backbone: str, true3_mask_subset: np.ndarray, keep_full_i
     _save_preds(f"TRUE_{backbone}", test_labels_ref, test_probs_mean)
 
 
-# ----------------------------
-# Two-step inference (margin)
-# ----------------------------
+
 def two_step_infer(model_original: str, model_true: str, mode="model1"):
     pO = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_probs.npy"))
     y = np.load(os.path.join(Cfg.out_dir, f"original_{model_original}_test_labels.npy"))
@@ -301,9 +289,7 @@ def two_step_infer(model_original: str, model_true: str, mode="model1"):
     _save_preds(tag, y, out)
 
 
-# ----------------------------
-# Two-step inference (entropy)
-# ----------------------------
+
 def two_step_infer_entropy(model_original: str, model_true: str,
                            quantile: float = None,
                            mode: str = "replace"):
@@ -331,9 +317,7 @@ def two_step_infer_entropy(model_original: str, model_true: str,
     _save_preds(tag, y, out)
 
 
-# ----------------------------
-# Main
-# ----------------------------
+
 if __name__ == "__main__":
     ensure_dir(Cfg.out_dir)
 

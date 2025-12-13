@@ -59,7 +59,7 @@ def main():
     for sp in SPLITS:
         normalize_split(sp)
 
-    # 提示如何切换到标准化目录
+    
     print("\n下一步：请把标准化目录重命名/接管为正式目录：")
     print("  - 把 train_std 重命名为 train")
     print("  - 把 val_std   重命名为 val")

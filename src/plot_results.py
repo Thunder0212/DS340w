@@ -20,7 +20,7 @@ def macro_ovr_auc(y_true: np.ndarray, y_prob: np.ndarray) -> float:
 
     aucs = []
     for c in range(n_classes):
-        # 如果某一类在 y_true 里完全没出现，roc_curve 会报错，这里跳过
+        
         if y_true_bin[:, c].sum() == 0:
             continue
         fpr, tpr, _ = roc_curve(y_true_bin[:, c], y_prob[:, c])
@@ -31,8 +31,7 @@ def macro_ovr_auc(y_true: np.ndarray, y_prob: np.ndarray) -> float:
 def plot_roc_two_methods(y_true_a, y_prob_a, label_a,
                          y_true_b, y_prob_b, label_b,
                          out_path: str):
-    # 用 macro OvR 的平均曲线做对比：这里简单画每类曲线太乱，所以只画 macro AUC 数值 + 随机挑一类会误导
-    # 采取：画“micro-average ROC”（更简洁）
+    
     n_classes = y_prob_a.shape[1]
     ya = label_binarize(y_true_a, classes=list(range(n_classes)))
     yb = label_binarize(y_true_b, classes=list(range(n_classes)))
@@ -68,7 +67,7 @@ def plot_confmat(y_true, y_pred, out_path: str, title: str):
 
 
 def plot_bar_metrics(methods_metrics, out_path: str):
-    # methods_metrics: list of (name, acc, f1, auc)
+    # methods_metrics
     names = [m[0] for m in methods_metrics]
     accs  = [m[1] for m in methods_metrics]
     f1s   = [m[2] for m in methods_metrics]
@@ -92,7 +91,7 @@ def plot_bar_metrics(methods_metrics, out_path: str):
 
 
 def list_available_methods(pred_dir: str):
-    # 根据 *_y_true.npy 推断有哪些 method
+    
     files = glob.glob(os.path.join(pred_dir, "*_y_true.npy"))
     methods = []
     for f in files:
@@ -116,7 +115,7 @@ if __name__ == "__main__":
     for m in methods:
         print(" -", m)
 
-    # 你论文最重要的对比：original_resnet50 vs ENT_Replace_q0.9
+    #original_resnet50 vs ENT_Replace_q0.9
     main_a = "original_resnet50"
     main_b = "ENT_Replace_q0.9"
 
@@ -125,11 +124,11 @@ if __name__ == "__main__":
     if main_b not in methods:
         raise FileNotFoundError(f"缺少 {main_b} 的预测文件（在 {pred_dir} 里找不到）")
 
-    # 读取主方法
+    
     y_true_a, y_prob_a, y_pred_a = load_pred(pred_dir, main_a)
     y_true_b, y_prob_b, y_pred_b = load_pred(pred_dir, main_b)
 
-    # 1) ROC（两方法对比）
+    
     roc_path = os.path.join(fig_dir, "ROC_Original_vs_ENTReplace.png")
     plot_roc_two_methods(
         y_true_a, y_prob_a, "Original-ResNet50",
@@ -138,12 +137,12 @@ if __name__ == "__main__":
     )
     print("[ok] saved:", roc_path)
 
-    # 2) Confusion Matrix（主方法）
+    #Confusion Matrix
     cm_path = os.path.join(fig_dir, "ConfMat_ENTReplace.png")
     plot_confmat(y_true_b, y_pred_b, cm_path, "Confusion Matrix: ENT-Replace-q0.9")
     print("[ok] saved:", cm_path)
 
-    # 3) 指标柱状图（你这轮主要方法）
+    
     compare_list = [
         ("Original-R50", "original_resnet50"),
         ("TwoStep", "TwoStep_MODEL1"),
@@ -166,4 +165,4 @@ if __name__ == "__main__":
     plot_bar_metrics(metrics, bar_path)
     print("[ok] saved:", bar_path)
 
-    print("\n全部完成 ✅ 输出目录：", fig_dir)
+    print("\nAll done, Folders：", fig_dir)
